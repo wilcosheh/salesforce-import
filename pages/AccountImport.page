@@ -1,0 +1,270 @@
+<apex:page standardController="Account" tabStyle="Account" recordSetVar="accounts" extensions="AccountImport" title="客户数据-导入" docType="html-5.0"> 
+    <head>
+        
+       <!--
+        <link href="//netdna.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css"/>
+        -->
+        <style type="text/css">            
+            .btn1,.btn1:hover{text-decoration:none}.upload-drop-zone{height:200px;border-width:2px;margin-bottom:20px;color:#ccc;border-style:dashed;border-color:#ccc;line-height:200px;text-align:center}body{background-color:#f3f5f6}.upload-drop-zone.drop{color:#222;border-color:#222}.tooltip-inner{text-align:center;-webkit-border-radius:0;-moz-border-radius:0;border-radius:4px;margin-bottom:6px;border:1px solid #ffd37f;background-color:#fffcdd;font-size:14px;color:#333;min-width:200px}.footer{left:0;bottom:0;width:100%;padding:2em;background-color:#f3f5f6;border-top:1px solid #fff;z-index:2;text-align:right;box-sizing:border-box;box-shadow:0 0 12px 0 rgba(0,0,0,.15);font-size:.9em}.btn1{background:#3498db;background-image:-webkit-linear-gradient(top,#3498db,#2980b9);background-image:-moz-linear-gradient(top,#3498db,#2980b9);background-image:-ms-linear-gradient(top,#3498db,#2980b9);background-image:-o-linear-gradient(top,#3498db,#2980b9);background-image:linear-gradient(to bottom,#3498db,#2980b9);-webkit-border-radius:4;-moz-border-radius:4;border-radius:4px;color:#fff;padding:10px 20px}.btn1:hover{background:#3cb0fd;background-image:-webkit-linear-gradient(top,#3cb0fd,#3498db);background-image:-moz-linear-gradient(top,#3cb0fd,#3498db);background-image:-ms-linear-gradient(top,#3cb0fd,#3498db);background-image:-o-linear-gradient(top,#3cb0fd,#3498db);background-image:linear-gradient(to bottom,#3cb0fd,#3498db)}
+        </style>
+        <script src="//code.jquery.com/jquery-1.10.2.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+    </head>
+    <body>
+        
+        <apex:sectionHeader title="客户数据导入"/>
+        <apex:pagemessages />
+            <apex:pageBlock >
+                <center>
+        <font color="red"> <b>注意：请使用标准模板来导入客户数据，目前支持
+            <a href="{!URLFOR($Resource.account_import_template,'account.xls')}" target="_blank"> xls </a>、
+            <a href="{!URLFOR($Resource.account_import_template,'account.xlsx')}" target="_blank"> xlsx </a>和
+            <a href="{!URLFOR($Resource.account_import_template,'account.csv')}" target="_blank"> csv </a>格式，请优先选用csv导入，csv模板使用UTF-8编码。</b> </font>
+        <div class="container">
+           
+          <div class="panel panel-default">
+            <div class="panel-body">
+              <!-- Standar Form -->
+              <br/>
+                <div class="form-inline pull-right">
+                  <div class="form-group">
+                    <input type="file" style="heigth:100%;font-size:16px;" name="xlfile" id="xlf"/>
+                  </div>
+                </div>
+
+              <!-- Drop Zone -->
+                <br/>
+                  <div class="upload-drop-zone" id="drop">
+                      <div id="drop_file"></div>
+                  </div>
+                  <div style="margin:20px;">
+                      <apex:form >
+                    <!--<button class="btn1" onclick="return initiateInsertion();" >开始导入</button>-->
+                     <apex:commandButton styleClass="btn1" onclick="return  initiateInsertion();" value="开始导入" />
+                     <apex:commandButton styleClass="btn1" value="返回" id="btnCancel" action="{!cancle}" style="margin-left:10px;width:70px;"/>
+                      </apex:form>
+                  </div>
+                
+              <div class = "panel panel-info">
+                  
+                   <apex:form >
+                    <apex:actionFunction name="passStringToUploadDataTosObject" action="{!parseData}" rerender="jobs">
+                        <apex:param name="data" value="" assignTo="{!myString}" />
+                    </apex:actionFunction>
+                    
+               <apex:actionPoller action="{!getJobs}" reRender="jobs" enabled="{!IF(status==FALSE,TRUE,FALSE)}" interval="5"/>
+               <apex:pageBlock >
+                   <apex:pageBlockSection title="最近导入历史" id="jobSec">
+                       
+                   </apex:pageBlockSection>
+                   <apex:pageblocktable value="{!latestJobs}" var="j" id="jobs"  >
+                   <apex:column headerValue="创建日期">
+                    <apex:outputField value="{!j.CreatedDate}"/>
+                    </apex:column>
+                    <apex:column headerValue="状态">
+                         <apex:outputField value="{!j.Status}"/>
+                    </apex:column>
+                    <apex:column headerValue="详细状态描述">
+                        <apex:outputField value="{!j.ExtendedStatus}"/>
+                    </apex:column>
+                    <apex:column headerValue="总批量">
+                        <apex:outputField value="{!j.TotalJobItems}"/>
+                    </apex:column>
+                    <apex:column headerValue="已处理">
+                        <apex:outputField value="{!j.JobItemsProcessed}"/>
+                    </apex:column>
+                    <apex:column headerValue="失败">
+                        <apex:outputField value="{!j.NumberOfErrors}"/>
+                    </apex:column>
+                    <apex:column headerValue="完成时间">
+                        <apex:outputField value="{!j.CompletedDate}"/>
+                    </apex:column>                                                  
+                   </apex:pageblocktable>
+               </apex:pageBlock>
+               
+                
+                </apex:form>
+                   <div class = "panel-body">
+                      <pre id="out">
+                      </pre>
+                   </div>
+                   
+                   
+                </div>
+                
+            </div>
+          </div>
+        </div> <!-- /container -->
+                    </center>
+      </apex:pageBlock>
+       
+                                
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/es5-shim/4.5.7/es5-shim.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.8.0/jszip.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.8.0/xlsx.js"></script>
+        <script>
+            $(document).ready(function(){
+                $('[data-toggle="tooltip"]').tooltip();
+                resetDropText();
+            });
+            </script>
+        <script>
+            var X = XLSX;
+            var data;
+            var filename;
+            var show_drop_text = "将文件拖拽到这里，目前支持的格式有xls，xlsx，csv，优先使用csv格式";
+        
+            function resetDropText(){
+                document.getElementById("drop_file").innerText = show_drop_text;
+            }
+            
+            function fixdata(data) {
+                var o = "", l = 0, w = 10240;
+                for(; l<data.byteLength/w; ++l) o+=String.fromCharCode.apply(null,new Uint8Array(data.slice(l*w,l*w+w)));
+                o+=String.fromCharCode.apply(null, new Uint8Array(data.slice(l*w)));
+                return o;
+            }
+            
+            function get_radio_value( radioName ) {
+                var radios = document.getElementsByName( radioName );
+                for( var i = 0; i < radios.length; i++ ) {
+                    if( radios[i].checked || radios.length === 1 ) {
+                        return radios[i].value;
+                    }
+                }
+            }
+            
+            function to_json(workbook) {
+                var result = {};
+                workbook.SheetNames.forEach(function(sheetName) {
+                    var roa = X.utils.sheet_to_row_object_array(workbook.Sheets[sheetName]);
+                    if(roa.length > 0){
+                        result[sheetName] = roa;
+                    }
+                });
+                return result;
+            }
+            
+            function to_csv(workbook) {
+                var result = [];
+                workbook.SheetNames.forEach(function(sheetName) {
+                    var csv = X.utils.sheet_to_csv(workbook.Sheets[sheetName]);
+                    if(csv.length > 0){
+                        result.push("SHEET: " + sheetName);
+                        result.push("");
+                        result.push(csv);
+                    }
+                });
+                return result.join("\n");
+            }
+            
+            function to_formulae(workbook) {
+                var result = [];
+                workbook.SheetNames.forEach(function(sheetName) {
+                    var formulae = X.utils.get_formulae(workbook.Sheets[sheetName]);
+                    if(formulae.length > 0){
+                        result.push("SHEET: " + sheetName);
+                        result.push("");
+                        result.push(formulae.join("\n"));
+                    }
+                });
+                return result.join("\n");
+            }
+            
+            function process_wb(wb) {
+                var output = "";
+                switch(get_radio_value("format")) {
+                    case "json":
+                        output = JSON.stringify(to_json(wb), 2, 2);
+                        break;
+                    case "form":
+                        output = to_formulae(wb);
+                        break;
+                    default:
+                    output = to_csv(wb);
+                }
+                data = output;
+                /*output = outputreplace(new RegExp('\\s*\\z','gm'),'');
+                if(out.innerText === undefined) out.textContent = output;
+                  else out.innerText = output;*/
+                
+                // if(typeof console !== 'undefined') console.log("output", new Date()+data);
+            }
+            
+            function initiateInsertion(){
+              if(!data){
+                alert('未选择导入文件或导入文件内容解析为空！');
+              }else{
+                  var resp=confirm("确定导入文件："+filename);
+                  if(resp == true){
+                      passStringToUploadDataTosObject(data);
+                    console.log("data",data);
+                    data = '';
+                    filename = '';
+                      resetDropText();
+                  }
+              }
+                return false;
+            }
+            
+            var drop = document.getElementById('drop');
+            function handleDrop(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                
+                var files = e.dataTransfer.files;
+                var show_name = document.getElementById('drop_file');
+                show_name.innerText = files[0].name;
+                handleFileFormat(files);
+                return false;
+            }
+        
+            function handleDragover(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+            }
+            
+            if(drop.addEventListener) {
+                drop.addEventListener('dragenter', handleDragover, false);
+                drop.addEventListener('dragover', handleDragover, false);
+                drop.addEventListener('drop', handleDrop, false);
+            }
+            
+            var xlf = document.getElementById('xlf');
+            function handleFile(e) {
+                var files = e.target.files;
+                handleFileFormat(files);
+                resetDropText();
+                return false;
+            }
+        
+            function handleFileFormat(files){
+                var f = files[0];
+                {
+                    filename = f.name;
+                    var extension = filename.substr(filename.lastIndexOf(".")+1).toLowerCase();
+                    if(extension === "csv"){
+                        var reader = new FileReader();
+                        reader.onload = function(e) {
+                            data = e.target.result;
+                        };
+                        reader.readAsText(f);
+                    }else{
+                        var reader = new FileReader();
+                        reader.onload = function(e) {
+                            var data = e.target.result;
+                            var arr = fixdata(data);
+                            var wb =  X.read(btoa(arr), {type: 'base64'});
+                            process_wb(wb);
+                        };
+                        reader.readAsArrayBuffer(f);
+                    }
+                }
+            }
+            
+            if(xlf.addEventListener) xlf.addEventListener('change', handleFile, false);
+            </script>
+    </body>
+</apex:page>
