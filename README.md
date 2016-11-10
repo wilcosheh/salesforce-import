@@ -6,7 +6,9 @@ Import csv and excel files using apex and visual force, which supports more than
 
 Add static resource、apex files and vf files to your projects.
 
-Just try it.
+Just try it, it shows like as follows:
+
+<img src='image/capture.png'/>
 
 ## TODO
 
